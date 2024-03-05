@@ -11,7 +11,10 @@ import com.devsuperior.demo.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,26 @@ public class EventService {
     @Autowired
     private CityRepository cityRepository;
 
+    @Transactional(readOnly = true)
+    public Page<EventDTO> findAll(Pageable pageable) {
+        Page<Event> list = eventRepository.findAll(pageable);
+        Page<EventDTO> listDTO = list.map(x -> new EventDTO(x));
+        return listDTO;
+    }
+
+    @Transactional
+    public EventDTO insert(EventDTO dto) {
+        Event entity = new Event();
+        entity.setName(dto.getName());
+        entity.setDate(dto.getDate());
+        entity.setUrl(dto.getUrl());
+        entity.setCity(new City(dto.getCityId(), null));
+
+        entity = eventRepository.save(entity);
+        return new EventDTO(entity);
+    }
+
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @Transactional
     public EventDTO update(Long id, EventDTO dto) {
         try {
